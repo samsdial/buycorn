@@ -1,19 +1,27 @@
-name: CI
+name: CI/CD Pipeline with Vercel Deployment
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   quality:
+    name: Quality Checks
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -23,7 +31,7 @@ jobs:
       - name: Type check
         run: bun run type-check
 
-      - name: Lint
+      - name: Lint (Zero Warnings)
         run: bun run lint
 
       - name: Format check
@@ -32,15 +40,105 @@ jobs:
       - name: Unit tests
         run: bun run test run
 
+      - name: Test coverage
+        run: bun run test:coverage
+
       - name: Build
         run: bun run build
 
-      - name: E2E tests
-        run: bunx playwright install --with-deps && bun run test:e2e
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
 
-  code-quality-gate:
+      - name: E2E tests
+        run: bun run test:e2e
+
+  deploy-preview:
+    name: Deploy Preview to Vercel
     runs-on: ubuntu-latest
     needs: quality
+    if: github.event_name == 'pull_request'
+
     steps:
-      - name: Quality Gate
-        run: echo "All quality checks passed!"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Preview to Vercel
+        id: deploy-preview
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Preview deployment ready!\n\n🔗 **Preview URL:** ${{ steps.deploy-preview.outputs.preview_url }}`
+            })
+
+  deploy-production:
+    name: Deploy to Vercel Production
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel Production
+        id: deploy-production
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "production_url=$url" >> $GITHUB_OUTPUT
+
+      - name: Create deployment status
+        run: |
+          echo "🚀 Production deployment successful!"
+          echo "📦 Deployed to: ${{ steps.deploy-production.outputs.production_url }}"
+
+  notify-success:
+    name: Deployment Successful
+    runs-on: ubuntu-latest
+    needs: [quality, deploy-production]
+    if: success() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Success notification
+        run: |
+          echo "✅ All quality checks passed"
+          echo "✅ Production deployment successful"
+          echo "🎉 Pipeline completed successfully!"
