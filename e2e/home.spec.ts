@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test('home page loads successfully', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page).toHaveTitle(/Next.js/);
+  await expect(page).toHaveTitle(/Create Next App/);
 
   const body = page.locator('body');
   await expect(body).toBeVisible();
@@ -11,6 +11,7 @@ test('home page loads successfully', async ({ page }) => {
 
 test('home page has main element', async ({ page }) => {
   await page.goto('/');
+
   const main = page.locator('main');
   await expect(main).toBeVisible();
 });
