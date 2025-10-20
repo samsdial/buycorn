@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET, POST } from '@/app/api/buy/route';
+import * as rateLimiter from '@/lib/rate-limiter';
 import { resetRateLimit } from '@/lib/rate-limiter';
 import type { ClientIdentifier } from '@/modules/buy-corn/types';
 
@@ -23,6 +24,7 @@ describe('POST /api/buy', () => {
   };
   beforeEach(async () => {
     await resetRateLimit(mockClient);
+    vi.restoreAllMocks();
   });
 
   it('debería permitir la primera compra', async () => {
@@ -63,6 +65,7 @@ describe('POST /api/buy', () => {
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
     expect(response.headers.get('X-RateLimit-Reset')).toBeDefined();
   });
+
   it('debería incluir Retry-After header cuando está bloqueado', async () => {
     const request = createMockRequest();
 
@@ -75,6 +78,7 @@ describe('POST /api/buy', () => {
     expect(retryAfter).toBeGreaterThan(0);
     expect(retryAfter).toBeLessThanOrEqual(60);
   });
+
   it('debería manejar diferentes IPs independientemente', async () => {
     const request1 = createMockRequest('192.168.1.1');
     const request2 = createMockRequest('192.168.1.2');
@@ -88,6 +92,7 @@ describe('POST /api/buy', () => {
     await resetRateLimit({ id: '192.168.1.1', type: 'ip' });
     await resetRateLimit({ id: '192.168.1.2', type: 'ip' });
   });
+
   it('debería devolver respuesta válida incluso con errores', async () => {
     const request = createMockRequest();
     const response = await POST(request);
@@ -98,9 +103,42 @@ describe('POST /api/buy', () => {
     expect(data).toBeDefined();
     expect(typeof data.success).toBe('boolean');
   });
+
+  /**
+   * NUEVA: Cobertura de error 500 (línea 68-77)
+   * Simula que checkRateLimit lanza un error
+   */
+  it('debería retornar 500 cuando checkRateLimit falla (línea 68-77)', async () => {
+    vi.spyOn(rateLimiter, 'checkRateLimit').mockRejectedValueOnce(
+      new Error('Redis connection failed')
+    );
+
+    const request = createMockRequest('192.168.1.100');
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+    expect(data.error).toContain('Internal server error');
+  });
+
+  /**
+   * NUEVA: Cobertura de error cuando recordAttempt falla
+   */
+  it('debería retornar 500 cuando recordAttempt falla', async () => {
+    vi.spyOn(rateLimiter, 'recordAttempt').mockRejectedValueOnce(new Error('Database error'));
+
+    const request = createMockRequest('192.168.1.101');
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+  });
 });
+
 describe('GET /api/buy', () => {
-  it('', async () => {
+  it('debería retornar 405 Method Not Allowed', async () => {
     const response = await GET();
     const data = await response.json();
 

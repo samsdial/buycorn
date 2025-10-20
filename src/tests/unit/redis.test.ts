@@ -61,7 +61,7 @@ describe('Redis Client', () => {
       expect(client1).toBe(client2);
     });
 
-    it('debería lanzar error si faltan credenciales', () => {
+    it('debería lanzar error si faltan credenciales (línea 15-16)', () => {
       // Guardar las variables originales
       const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
       const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -73,10 +73,36 @@ describe('Redis Client', () => {
       // Limpiar cliente
       closeRedisConnection();
 
-      // Debe lanzar error (con typo corregido en el mensaje)
+      // Debe lanzar error
       expect(() => getRedisClient()).toThrow(/Missing Redis configuration/i);
 
       // Restaurar
+      if (originalUrl) process.env.UPSTASH_REDIS_REST_URL = originalUrl;
+      if (originalToken) process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
+    });
+
+    it('debería lanzar error si solo falta URL', () => {
+      const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      delete process.env.UPSTASH_REDIS_REST_URL;
+      closeRedisConnection();
+
+      expect(() => getRedisClient()).toThrow(/Missing Redis configuration/i);
+
+      if (originalUrl) process.env.UPSTASH_REDIS_REST_URL = originalUrl;
+      if (originalToken) process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
+    });
+
+    it('debería lanzar error si solo falta TOKEN', () => {
+      const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
+      closeRedisConnection();
+
+      expect(() => getRedisClient()).toThrow(/Missing Redis configuration/i);
+
       if (originalUrl) process.env.UPSTASH_REDIS_REST_URL = originalUrl;
       if (originalToken) process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
     });
@@ -94,16 +120,29 @@ describe('Redis Client', () => {
       expect(connected).toBe(true);
     });
 
-    it('debería manejar errores de conexión gracefully', async () => {
+    it('debería retornar false cuando falla ping (línea 38-47)', async () => {
       if (!isRedisAvailable()) {
         // Skip si Redis no está configurado en CI
         expect(true).toBe(true);
         return;
       }
 
-      // Mock de la función ping para simular fallo sin hacer request real
+      // Mock de la función ping para simular fallo
       const redis = getRedisClient();
       vi.spyOn(redis, 'ping').mockRejectedValueOnce(new Error('Connection failed'));
+
+      const connected = await testRedisConnection();
+      expect(connected).toBe(false);
+    });
+
+    it('debería manejar resultado de ping diferente a PONG', async () => {
+      if (!isRedisAvailable()) {
+        expect(true).toBe(true);
+        return;
+      }
+
+      const redis = getRedisClient();
+      vi.spyOn(redis, 'ping').mockResolvedValueOnce('ERROR');
 
       const connected = await testRedisConnection();
       expect(connected).toBe(false);

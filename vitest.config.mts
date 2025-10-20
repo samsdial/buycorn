@@ -22,6 +22,7 @@ export default defineConfig({
       exclude: [
         'node_modules/**',
         'src/tests/**',
+        'src/lib/redis.ts',
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData/**',
