@@ -13,7 +13,7 @@ export interface BuySuccessResponse {
   message: string;
   data: {
     purchasedAt: string;
-    nextPurchaseAllowed: string;
+    nextPurchaseAllowedAt: string;
   };
 }
 export interface BuyErrorResponse {
