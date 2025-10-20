@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { GET, POST } from '@/api/buy/route';
+import { GET, POST } from '@/app/api/buy/route';
 import { resetRateLimit } from '@/lib/rate-limiter';
 import type { ClientIdentifier } from '@/modules/buy-corn/types';
 

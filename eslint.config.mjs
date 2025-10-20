@@ -34,6 +34,7 @@ const eslintConfig = [
       'react/prop-types': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/set-state-in-effect': 'off',
       'import/order': [
         'error',
         {

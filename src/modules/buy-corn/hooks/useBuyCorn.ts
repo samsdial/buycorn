@@ -39,7 +39,7 @@ export function useBuyCorn(): UseBuyCornReturn {
         setState({
           isLoading: false,
           error: null,
-          success: false,
+          success: true,
           lastPurchase: response,
           retryAfter: null,
         });
