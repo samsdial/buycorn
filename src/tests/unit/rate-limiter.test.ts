@@ -1,9 +1,3 @@
-/**
- * Rate limiter unit tests
- *
- * Test for validation and configuration of rate limiting settings.
- */
-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RATE_LIMIT_CONFIG } from '@/config/rate-limit.config';
@@ -43,7 +37,6 @@ describe('RateLimiter basico', () => {
       expect(result.remaining).toBe(0);
       expect(result.limit).toBe(1);
     });
-    //it('', async () => {});
     it('deberia calcular el restear correctamente', async () => {
       const beforeTime = Date.now();
       await recordAttempt(mockClient);

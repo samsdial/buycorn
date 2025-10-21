@@ -103,11 +103,6 @@ describe('POST /api/buy', () => {
     expect(data).toBeDefined();
     expect(typeof data.success).toBe('boolean');
   });
-
-  /**
-   * NUEVA: Cobertura de error 500 (línea 68-77)
-   * Simula que checkRateLimit lanza un error
-   */
   it('debería retornar 500 cuando checkRateLimit falla (línea 68-77)', async () => {
     vi.spyOn(rateLimiter, 'checkRateLimit').mockRejectedValueOnce(
       new Error('Redis connection failed')
@@ -122,9 +117,6 @@ describe('POST /api/buy', () => {
     expect(data.error).toContain('Internal server error');
   });
 
-  /**
-   * NUEVA: Cobertura de error cuando recordAttempt falla
-   */
   it('debería retornar 500 cuando recordAttempt falla', async () => {
     vi.spyOn(rateLimiter, 'recordAttempt').mockRejectedValueOnce(new Error('Database error'));
 

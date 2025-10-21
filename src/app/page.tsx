@@ -33,7 +33,7 @@ export default function Home() {
             </div>
           </div>
           <div className="w-full">
-            <p className="text-center text-sm text-gray-500">Corn Purchasing system</p>
+            <p className="text-center text-sm text-gray-500">Corn Purchasing system v1.1</p>
           </div>
         </div>
       </div>
