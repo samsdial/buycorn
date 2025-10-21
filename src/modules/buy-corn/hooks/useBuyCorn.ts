@@ -26,15 +26,14 @@ export function useBuyCorn(): UseBuyCornReturn {
   });
 
   const handleBuy = async () => {
-    setState({
+    setState((prev) => ({
+      ...prev,
       isLoading: false,
-      error: null,
-      success: false,
-      lastPurchase: null,
-      retryAfter: null,
-    });
+    }));
+
     try {
       const response = await buyCorn();
+
       if (response.success) {
         setState({
           isLoading: false,
@@ -46,10 +45,10 @@ export function useBuyCorn(): UseBuyCornReturn {
       } else {
         setState({
           isLoading: false,
-          error: response.error,
+          error: response.error || 'Rate limit exceeded',
           success: false,
           lastPurchase: response,
-          retryAfter: response.retryAfter || null,
+          retryAfter: response.retryAfter || 60,
         });
       }
     } catch (err) {
