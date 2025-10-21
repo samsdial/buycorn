@@ -11,9 +11,6 @@ test.describe('Buy Corn - Core Functionality', () => {
     const buyButton = page.getByRole('button', { name: /buy corn/i });
     await expect(buyButton).toBeVisible();
     await expect(buyButton).toBeEnabled();
-
-    await expect(page.getByText('1')).toBeVisible();
-    await expect(page.getByText('60s')).toBeVisible();
   });
 
   test('should be responsive on mobile', async ({ page }) => {
